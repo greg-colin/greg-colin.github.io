@@ -15,11 +15,11 @@ form{display:inline-block;}
 .randomPizzaContainer{float:left;display:flex;}
 .randomPizzaContainer:after{content:"";display:table;clear:both;}
 .container{background-color:rgba(240, 60, 60, 0.8);}</style>
-<script>function loadCSS(href,before,media,callback){"use strict";var ss=window.document.createElement("link");var ref=before||window.document.getElementsByTagName("script")[0];var sheets=window.document.styleSheets;ss.rel="stylesheet";ss.href=href;ss.media="only x";ss.onload=callback||function(){};ref.parentNode.insertBefore(ss,ref);function toggleMedia(){var defined;for(var i=0;i<sheets.length;i++){if(sheets[i].href&&sheets[i].href.indexOf(href)>-1){defined=true;}}
+<script>function loadCSS(href,before,media,callback){"use strict";var ss=window.document.createElement("link");var ref=before||window.document.getElementsByTagName("script")[0];var sheets=window.document.styleSheets;ss.rel="stylesheet";ss.href=href;ss.media="only x";ss.onload=callback||function(){};console.log("ref=");console.log(ref);ref.parentNode.insertBefore(ss,ref);function toggleMedia(){var defined;for(var i=0;i<sheets.length;i++){if(sheets[i].href&&sheets[i].href.indexOf(href)>-1){defined=true;}}
 if(defined){ss.media=media||"all";}
 else{setTimeout(toggleMedia);}}
 toggleMedia();return ss;}
-loadCSS("css/bootstrap-grid.css");</script>
+var bodyElem=window.document.getElementsByTagName("style")[0];loadCSS("css/bootstrap-grid.css",bodyElem);</script>
 <noscript><link rel=stylesheet href="css/bootstrap-grid.css"></noscript>
 </head>
 <body>
@@ -151,6 +151,6 @@ loadCSS("css/bootstrap-grid.css");</script>
 </div>
 <div id=footer class=col-md-12>Thanks for visiting! &copy; 2014 Udacity</div>
 </div>
-<script src="js/main_min.js" async></script>
+<script src="js/main_min.js"></script>
 </body>
 </html>
