@@ -75,4 +75,28 @@ Let me know if you think I've overlooked something and I'll get it fixed!
 
 Greg Colin
 
+##Third Submission Notes
+**NOTES ON GRADING:** Evidently, whoever is grading these things is receiving different
+results from Google PageSpeed Insights than I am, given the content of the
+last review. Upon receipt of that review, I immediately ran the test again and
+received a WILDLY different outcome, with my code passing with flying colors.
+As a result of this massive discrepancy I took a screenshot of that outcome
+and added it to the github, where it can be found at:
+[http://greg-colin.github.io/grading-discrepancy.jpg](http://greg-colin.github.io/grading-discrepancy.jpg)
+Furthermore, the very moment I upload submission #3, I will run another test
+and screenshot those results as well and upload again. Those results will be
+available at:
+[http://greg-colin.github.io/submission3perf.jpg](http://greg-colin.github.io/submission3perf.jpg)
 
+Additionally, the "5ms pizza change time" issue was not made mention in the
+review of submission #1. If it had, it would have been fixed in submission
+#2.
+
+The multiweek lag between submissions and feedback is a massive momentum-killer
+for students who are trying to continue on while awaiting feedback, most particularly
+when multiple submissions are involved. One might be forgiven for thinking that
+submissions after the first one would be somehow prioritized.
+
+**NOTE:**
+Changes for submission3 are commented in the code for main.js with the text
+"NOTE3:"

@@ -515,13 +515,18 @@ var resizePizzas = function(size) {
    @function determineDx
    @param (DOMelement) elem The DOM element to change.
    @param (int) size The new "size number" to change the pizzas to.
-   @description Changes the value for the size of the pizza above the slider
+   @param (int) windowwidth The width of the container for all pizzas.
+   @param (int) theoldwidth The current width of a pizza element (NOTE3: New parameter)
+   @description Changes the value for the size of the pizza above the slider<br>
+   <b>NOTE3: Changed parameters to determineDx to remove the page element, which
+   is no longer required due to changed in changePizzaSizes(). Added a parameter
+   for the individual pizza width precalculated in changePizzaSizes().
    @returns (float) Returns the size difference to change a pizza element from one size to another. Called by changePizzaSlices(size).
-   @see changePizzaSlices
+   @see changePizzaSizes
   */
-  function determineDx (elem, size) {
-    var oldwidth = elem.offsetWidth;
-    var windowwidth = document.querySelector("#randomPizzas").offsetWidth;
+  function determineDx (size, windowwidth, theoldwidth) {
+    window.performance.mark("mark_start_dx");
+    var oldwidth = theoldwidth;
     var oldsize = oldwidth / windowwidth;
 
     /**
@@ -544,7 +549,6 @@ var resizePizzas = function(size) {
 
     var newsize = sizeSwitcher(size);
     var dx = (newsize - oldsize) * windowwidth;
-
     return dx;
   }
 
@@ -554,15 +558,23 @@ var resizePizzas = function(size) {
    @function changePizzaSizes
    @param (int) size The size selector [1-3]
    @description Iterates through pizza elements on the page and changes their widths<br>
-   <b>NOTE:<b> Optimized to reduce number of uses of 'document.querySelectorAll(".randomPizzaContainer")
-   by calling it once and storing the results in a local variable.
+   <b>NOTE:</b> Optimized to reduce number of uses of 'document.querySelectorAll(".randomPizzaContainer")
+   by calling it once and storing the results in a local variable.<br>
+   <b>NOTE3:</b>Pulled all calculations outside the loop and used the 0th pizza since
+   the values are the same for all pizzas.
   */
   function changePizzaSizes(size) {
     var randomPizzaContainer = document.querySelectorAll(".randomPizzaContainer");
-    for (var i = 0; i < randomPizzaContainer.length; i++) {
-      var dx = determineDx(randomPizzaContainer[i], size);
-      var newwidth = randomPizzaContainer[i].offsetWidth + dx + 'px';
-      randomPizzaContainer[i].style.width = newwidth;
+    var windowwidth = document.querySelector("#randomPizzas").offsetWidth;
+    var thelength = randomPizzaContainer.length;
+    var theoldwidth = randomPizzaContainer[0].offsetWidth;
+    var dx = determineDx(size, windowwidth, theoldwidth);
+    var thenewwidth = randomPizzaContainer[0].offsetWidth + dx + "px";
+    for (var i = 0; i < thelength; i++) {
+      var thecontainer = randomPizzaContainer[i];
+
+      var newwidth = thenewwidth;
+      thecontainer.style.width = newwidth;
     }
   }
 
