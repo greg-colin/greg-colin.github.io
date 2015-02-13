@@ -97,6 +97,9 @@ for students who are trying to continue on while awaiting feedback, most particu
 when multiple submissions are involved. One might be forgiven for thinking that
 submissions after the first one would be somehow prioritized.
 
-**NOTE:**
-Changes for submission3 are commented in the code for main.js with the text
-"NOTE3:"
+**NOTE3:**
+Changes for submission3 are commented in the code for main.js with the text "NOTE3"
+
+**NOTE3:**
+Changed Pizza resize function to run in less than 5ms. No other changes were required
+to meet the rubric (see screenshots).
