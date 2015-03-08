@@ -5,58 +5,38 @@
 // View Model
 var MapViewModel = function() {
   var self = this;
-  var iconBase = "./images/google_map_markers/"
+  var iconBase = "./images/google_map_markers/";
+  var imgBase = "http://maps.googleapis.com/maps/api/streetview?size=160x120&location="
   var userLat = ko.observable(40.7586);
   var userLong = ko.observable(-73.9792);
   var myLocation = new google.maps.LatLng(userLat(), userLong());
-  var foursquareVenues = ko.observableArray([]);
+  this.foursquareVenues = ko.observableArray([]);
   this.mapMarkers = ko.observableArray([]);
   this.myLocationMarker = ko.observable();
 
-  this.markOwnLocation = function() {
+  self.markOwnLocation = function() {
     self.myLocationMarker(new google.maps.Marker({
       map: self.map,
       position: myLocation,
       icon: iconBase + 'green_MarkerA.png',
       title: "My current location"
-    }))
-  }
+    }));
+  };
 
-  self.createMapMarker = function(venue) {
-    var googleLatLng = new google.maps.LatLng(venue.location.lat, venue.location.lng);
-
-    var marker = new google.maps.Marker({
-      map: self.map,
-      position: googleLatLng,
-      icon: iconBase + 'purple_MarkerA.png',
-      title: venue.name
+  self.unflagAllMarkers = function() {
+    $.each(self.mapMarkers(), function() {
+      this.marker.setIcon(iconBase + 'purple_MarkerA.png');
     });
-
-    google.maps.event.addListener(marker, 'click', (function(marker, map, infoWindow) {
-      return function() {
-        console.log("this:");
-        console.log(this);
-        console.log("map:");
-        console.log(map);
-        console.log("info window:");
-        marker.setIcon(iconBase + 'red_MarkerA.png');
-        infoWindow.setContent('This is: ' + marker.title);
-        console.log(infoWindow);
-        infoWindow.open(map, marker);
-      }
-    })(marker, self.map, self.infoWindow));
-
-    mapMarkers().push(marker);
-  }
+  };
 
   self.getVenues = function() {
     $.ajax({
         type: "GET",
-        url: "https://api.foursquare.com/v2/venues/search?ll="+userLat()+","+userLong()+"&client_id=OLYPOBMQ003QZVMZGDFOEGEZOGZQPNX1X404PVV1FLPVGFMU&client_secret=3MVWXXYQ5ENWZ4MKW4Q1NDMW2P20UFO243POFRBDZUHALQ4U&v=20150217",
+        url: "https://api.foursquare.com/v2/venues/search?ll="+userLat()+","+userLong()+"&client_id=OLYPOBMQ003QZVMZGDFOEGEZOGZQPNX1X404PVV1FLPVGFMU&client_secret=3MVWXXYQ5ENWZ4MKW4Q1NDMW2P20UFO243POFRBDZUHALQ4U&v=20150228",
           success: function(data) {
-            foursquareVenues(data.response.venues);
-              $("#venues").html("");
-              $.each(foursquareVenues(), function() {
+            var phone, category, address, rating;
+            self.foursquareVenues(data.response.venues);
+              $.each(self.foursquareVenues(), function() {
                   if (this.contact.formattedPhone) {
                       phone = "Phone:"+this.contact.formattedPhone;
                   } else {
@@ -80,44 +60,82 @@ var MapViewModel = function() {
                   } else {
                     rating = "";
                   }
-                  console.log("creating marker");
-                  var appendeddatahtml = '<div class="venue"><h2><span>'+this.name+category+rating+'</span></h2>'+address+phone+'</p><p><strong>Total Checkins:</strong> '+this.stats.checkinsCount+'</p></div>';
+                  var markerpos = new google.maps.LatLng(this.location.lat, this.location.lng, false);
+                  console.log("creating marker at " + markerpos.toString());
+                  var imageloc = this.location.address + ' ' + this.location.city + ', ' + this.location.state + ' ' + this.location.country;
+                  var appendeddatahtml = '<div class="venue">' + 
+                                        '<h2>' +
+                                          this.name +
+                                          category +
+                                          rating +
+                                          '</h2>' +
+                                          address +
+                                          phone +
+                                          '</p><p><strong>Total Checkins:</strong> ' +
+                                          this.stats.checkinsCount +
+                                          '<p>' + '<img src="' + imgBase + imageloc + '""></div>';
                   var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(this.location.lat, this.location.lng),
+                    position: markerpos,
                     title: this.name,
                     icon: iconBase + 'purple_MarkerA.png',
                     map: self.map
                   });
-                  //
+
+                  console.log("Created marker:");
                   console.log(marker);
-                  //
-                  google.maps.event.addListener(marker, 'click', function() {
-                    marker.setIcon(iconBase + 'red_MarkerA.png');
-                    self.infoWindow.setContent(appendeddatahtml);
-                    console.log(self.infoWindow);
-                    self.infoWindow.open(self.map, marker);
-                  });
-                  //
                   self.mapMarkers.push({marker: marker, content: appendeddatahtml});
-                  //
-                  //$("#venues").append(appendeddatahtml);
-                  
+
+                  google.maps.event.addListener(marker, 'click', (function(marker) {
+                    return function() {
+                      console.log("Marker clicked:");
+                      console.log(marker);
+                      marker.setIcon(iconBase + 'red_MarkerA.png');
+                      self.handleInfoWindow(marker.position, appendeddatahtml);
+                    };
+                  })(marker));
               });
           }
     });
-  }
+  };
+
+  self.handleInfoWindow = function(latlng, content) {
+    console.log("Creating info window at: " + latlng.toString());
+    self.infoWindow.setContent(content);
+    self.infoWindow.setPosition(latlng);
+    self.infoWindow.open(self.map);
+  };
 
   self.initialize = function() {
     console.log("in self.initialize");
+
     var mapOptions = {
-      disableDefaultUI: false,
-      center: myLocation, // referencing the myLocation variable
-      position: myLocation,  // same as above
+      disableDefaultUI: true,
+      center: myLocation,
       mapTypeId: google.maps.MapTypeId.ROADMAP,
       zoom: 16
     };
+
     self.map = new google.maps.Map(document.getElementById('map-div'), mapOptions);
-    self.infoWindow = new google.maps.InfoWindow();
+
+    var textinput = (document.getElementById('textinput'));
+    self.map.controls[google.maps.ControlPosition.TOP_LEFT].push(textinput);
+
+    var controlUI = (document.getElementById('controlUI'));
+    self.map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(controlUI);
+
+    var searchBox = new google.maps.places.SearchBox((textinput));
+
+    google.maps.event.addListener(self.map, 'dblclick', function(event) {       
+        console.log("Map double-clicked. Event follows:");
+        console.log(event);
+    });
+
+    self.infoWindow = new google.maps.InfoWindow({pixelOffset: new google.maps.Size(0, -25)});
+
+    google.maps.event.addListener(self.infoWindow,'closeclick',function(){
+       self.unflagAllMarkers();
+    });
+
     self.markOwnLocation();
     self.getVenues();
   };
