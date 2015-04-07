@@ -1,7 +1,9 @@
 /**
  @file app.js
  @author Gregory Coline
- @version 1.0
+ @version 1.0.1
+ @description Version 1.0.0 Initial release<br>
+ Version 1.0.1 address grading comments from first turn-in.
  */
 
 /**
@@ -49,6 +51,12 @@ var MapViewModel = function() {
   var myLocation = new google.maps.LatLng(userLat(), userLong());
 
   /**
+   @var {object} myBounds
+   @description A bounds object in the google maps API, used for keeping the map appropriately-sized.
+   */
+  var myBounds = new google.maps.LatLngBounds();
+
+  /**
    @var {string} userMessage
    @description A message displayed at the bottom of the controls UI to indicate status
    */
@@ -86,6 +94,37 @@ var MapViewModel = function() {
    @description A list of all the map market titles matching the current search criteria
    */
   self.filteredList = ko.observableArray([]);
+
+  /**
+   @var {object} mql
+   @description A match query object corresponding to the passed string. This is used as a parameter to
+   an event handler function which handles events generated when a media query match occurs.
+   */
+  self.mql = window.matchMedia("(min-width: 480px)");
+
+  /**
+   @function handleMediaChange
+   @param {object} mql A media query match object describing the change criteria
+   */
+  self.handleMediaChange = function(mql) {
+    if (mql.matches) {
+      console.log("media query matches");
+      document.getElementById('controlUI-min').style.display = "none";
+      document.getElementById('controlUI').style.display = "block";
+      document.getElementById("hidebutton").style.display = "none;";
+      document.getElementById("textinput").className = "map-search";
+
+    } else {
+      console.log("media query DOES NOT match");
+      document.getElementById('controlUI-min').style.display = "block";
+      document.getElementById('controlUI').style.display = "none";
+    }
+  }
+
+  // Add an event listener for media query state changes
+  self.mql.addListener(self.handleMediaChange);
+  // ...and call it "by hand" for the initial display
+  self.handleMediaChange(self.mql);
 
 /**
  @function filterList
@@ -168,33 +207,36 @@ var MapViewModel = function() {
         console.log(self.userMessage);
         self.userMessage("Status: Venue selected.");
         self.searchQuery(this.marker.title);
+        // TODO: Recenter on this pin here
+        self.map.setCenter(this.marker.position);
+        // TODO: handle info window here
+       self.handleInfoWindow(this.marker.position, this.content);
       }
     });
   };
 
   /**
-   @function ossetCenter
+   @function map_recenter
    @param {google.maps.LatLng} latlng
    @param {int} offsetx
    @param {int} offsety
    @description Offset the map by offsetx and offsety pixels from center.<br>
    NOTE: From example on stackoverflow.com
    */
-  self.offsetCenter = function(latlng,offsetx,offsety) {
-    var scale = Math.pow(2, self.map.getZoom());
-    var nw = new google.maps.LatLng(
-        self.map.getBounds().getNorthEast().lat(),
-        self.map.getBounds().getSouthWest().lng()
+  self.map_recenter = function(latlng,offsetx,offsety) {
+    var point1 = self.map.getProjection().fromLatLngToPoint(
+        (latlng instanceof google.maps.LatLng) ? latlng : self.map.getCenter()
     );
-    var worldCoordinateCenter = self.map.getProjection().fromLatLngToPoint(latlng);
-    var pixelOffset = new google.maps.Point((offsetx / scale) || 0, (offsety / scale) || 0);
-    var worldCoordinateNewCenter = new google.maps.Point(
-        worldCoordinateCenter.x - pixelOffset.x,
-        worldCoordinateCenter.y + pixelOffset.y
-    );
-    var newCenter = self.map.getProjection().fromPointToLatLng(worldCoordinateNewCenter);
-    self.map.setCenter(newCenter);
-  };
+    var point2 = new google.maps.Point(
+        ( (typeof(offsetx) == 'number' ? offsetx : 0) / Math.pow(2, self.map.getZoom()) ) || 0,
+        ( (typeof(offsety) == 'number' ? offsety : 0) / Math.pow(2, self.map.getZoom()) ) || 0
+    );  
+    self.map.setCenter(self.map.getProjection().fromPointToLatLng(new google.maps.Point(
+        point1.x - point2.x,
+        point1.y + point2.y
+    )));
+	self.map.fitBounds(myBounds);
+  }
 
   /**
    @function getVenues
@@ -205,7 +247,7 @@ var MapViewModel = function() {
     self.userMessage("Status: Retrieving Foursquare venues...");
     $.ajax({
         type: "GET",
-        url: "https://api.foursquare.com/v2/venues/search?ll="+userLat()+","+userLong()+"&client_id=OLYPOBMQ003QZVMZGDFOEGEZOGZQPNX1X404PVV1FLPVGFMU&client_secret=3MVWXXYQ5ENWZ4MKW4Q1NDMW2P20UFO243POFRBDZUHALQ4U&v=20150228",
+        url: "https://api.foursquare.com/v2/venues/search?intent=browse&radius=300&ll="+userLat()+","+userLong()+"&client_id=OLYPOBMQ003QZVMZGDFOEGEZOGZQPNX1X404PVV1FLPVGFMU&client_secret=3MVWXXYQ5ENWZ4MKW4Q1NDMW2P20UFO243POFRBDZUHALQ4U&v=20150401",
           success: function(data) {
             self.userMessage("Status: Processing Foursquare venues.");
             var phone, category, address, rating;
@@ -256,6 +298,10 @@ var MapViewModel = function() {
 
                   self.mapMarkers.push({marker: marker, content: appendeddatahtml});
 
+                  // Fit the map to marker boundaries
+                  myBounds.extend(markerpos);
+                  self.map.fitBounds(myBounds);
+
                   google.maps.event.addListener(marker, 'click', (function(marker, htmlcontent) {
                     return function() {
                       console.log("Marker clicked:");
@@ -286,6 +332,8 @@ var MapViewModel = function() {
    @param {string} content HTML describing the location.
    */
   self.handleInfoWindow = function(latlng, content) {
+	  // TODO: for some reason I can't use self.offsetCenter to do this. It might be broken.
+    self.map.setCenter(latlng);
     self.infoWindow.setContent(content);
     self.infoWindow.setPosition(latlng);
     self.infoWindow.open(self.map);
@@ -297,7 +345,6 @@ var MapViewModel = function() {
    Creates (but not displays) the info window. Adds UI controls created in the DOM to the map
    */
   self.initialize = function() {
-    console.log("in self.initialize");
     document.getElementById('message-div').className = "message-good";
     self.userMessage("Status: Initializing...");
 
@@ -319,7 +366,8 @@ var MapViewModel = function() {
       var controlUI = document.getElementById('controlUI');
       self.map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(controlUI);
 
-      //var searchBox = new google.maps.places.SearchBox((textinput));
+      var controlUImin = document.getElementById('controlUI-min');
+      self.map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(controlUImin);
 
       google.maps.event.addListener(self.map, 'dblclick', function(event) {       
           console.log("Map double-clicked. Event follows:");
@@ -342,6 +390,7 @@ var MapViewModel = function() {
             }
           });
         }
+        self.map_recenter(myLocation, 50, 50);
       });
 
       /**
@@ -350,7 +399,7 @@ var MapViewModel = function() {
        */
       google.maps.event.addDomListener(window, 'resize', function() {
         console.log("I see resize event");
-        self.offsetCenter(myLocation, 50, 50);
+        self.map_recenter(myLocation, 50, 50);
       });
 
       /**
@@ -358,7 +407,7 @@ var MapViewModel = function() {
        @description Once the map is ready, offset the center by a few pixels to allow for the control UI.
        */
       google.maps.event.addListenerOnce(self.map, 'idle', function(){
-          self.offsetCenter(myLocation, 50, 50);
+          self.map_recenter(myLocation, 50, 50);
       });
 
       /**
@@ -366,16 +415,36 @@ var MapViewModel = function() {
        @description Reset the searchQuery, deselect anything selected in the list, and unflag all markers when the "Reset selection" button is clicked.
        */
       document.getElementById('clearbutton').addEventListener("click", function() {
-        console.log("button clicked");
+        console.log("clear button clicked");
         self.searchQuery("");
         document.getElementById("selectbox").selectedIndex = -1;
         self.unflagAllMarkers();
+        self.infoWindow.close();
+        self.map_recenter(myLocation, 50, 50);
+      });
+
+      document.getElementById('showbutton').addEventListener("click", function() {
+        console.log("mobile show full ui button clicked");
+        document.getElementById('controlUI-min').style.display = "none";
+        document.getElementById("textinput").className = "map-search-min";
+        document.getElementById("hidebutton").className = "map-search-dismiss";
+        document.getElementById("hidebutton").style.display = "inline";
+        document.getElementById('controlUI').style.display = "block";
+      });
+	  
+      document.getElementById('hidebutton').addEventListener("click", function() {
+        console.log("mobile hide full ui button clicked");
+        document.getElementById('controlUI').style.display = "none";
+        document.getElementById('controlUI-min').style.display = "block";
       });
 
       self.markOwnLocation();
       self.getVenues();
     } else {
+      // We can't actually get here because a different failure will have already occurred, but just in case...
       console.log("Uh-oh!!! No Google map!!!!!");
+      document.getElementById('message-div').className = "message-bad";
+      document.getElementById('message-div').innerText = "Status: Google Maps API did not load.";
     }
   };
 
